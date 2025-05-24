@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: react-practice/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 3. Install Dependencies
         run: npm install
