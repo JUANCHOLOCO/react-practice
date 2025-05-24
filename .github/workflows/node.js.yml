@@ -1,73 +1,49 @@
-
-# Nombre del Workflow: Describe lo que hace el workflow.
 name: Deploy React Vite App to Vercel
 
-# Disparadores (Triggers): Define cuándo se ejecutará este workflow.
 on:
   push:
-    branches: ["main"] # Se ejecuta en cada push a la rama 'main'. Considera 'master' si usas esa.
+    branches: ["main"]
 
-# Trabajos (Jobs): Define una secuencia de tareas a ejecutar.
 jobs:
   deploy:
-    # Nombre del trabajo (opcional, pero bueno para la legibilidad)
     name: Build and Deploy to Vercel
-    # Máquina virtual donde se ejecutarán los pasos. 'ubuntu-latest' es una buena opción general.
     runs-on: ubuntu-latest
 
-    # Permisos: Define los permisos que tendrá el GITHUB_TOKEN para este trabajo.
     permissions:
-      contents: read # Necesario para hacer checkout (clonar) el código del repositorio.
-      deployments: write # Necesario para que Vercel CLI cree "GitHub Deployments" y actualice el estado.
+      contents: read
+      deployments: write
 
-    # Pasos (Steps): Secuencia de acciones a realizar.
     steps:
       - name: 1. Checkout Code
-        uses: actions/checkout@v4 # Acción para clonar tu repositorio en el runner.
+        uses: actions/checkout@v4
 
       - name: 2. Setup Node.js
-        uses: actions/setup-node@v4 # Acción para configurar el entorno de Node.js.
+        uses: actions/setup-node@v4
         with:
-          node-version: '18' # Especifica la versión de Node.js. Vite recomienda 18+.
-          cache: 'npm' # Habilita el caché para las dependencias de npm.
-          # Si usas yarn: cache: 'yarn'
-          # Si usas pnpm: cache: 'pnpm'
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: react-practice/package-lock.json
 
       - name: 3. Install Dependencies
-        run: npm install # Instala las dependencias del proyecto.
-        # Si usas yarn: run: yarn install --frozen-lockfile
-        # Si usas pnpm: run: pnpm install --frozen-lockfile
+        run: npm install
+        working-directory: ./react-practice
 
       - name: 4. Build Project
-        run: npm run build # Ejecuta el script de build (usualmente 'vite build' para Vite).
-        # Si usas yarn: run: yarn build
-        # Si usas pnpm: run: pnpm build
+        run: npm run build
+        working-directory: ./react-practice
         env:
-          # Si tu build de Vite necesita variables de entorno VITE_ definidas en Vercel,
-          # el paso 'Pull Vercel Environment Information' más abajo las hará disponibles.
-          # Si tienes variables de entorno que SÓLO existen como GitHub Secrets y son necesarias
-          # EN TIEMPO DE BUILD (prefijo VITE_), debes pasarlas aquí explícitamente:
-          # VITE_API_KEY: ${{ secrets.VITE_API_KEY_IF_NEEDED_AT_BUILD }}
-          NODE_ENV: production # Asegura que el build se haga en modo producción.
+          NODE_ENV: production
 
       - name: 5. Pull Vercel Environment Information
-        # Este paso vincula tu proyecto local con Vercel y descarga las variables de entorno de Vercel.
-        # Esto es útil si tu 'npm run build' (Vite) necesita acceder a variables de entorno
-        # (con prefijo VITE_) que has configurado en tu proyecto de Vercel.
         run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./react-practice
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: 6. Deploy Project to Vercel
-        # Este comando despliega los archivos pre-compilados (del paso 'npm run build') a Vercel.
-        # El flag --prod indica que es un despliegue a producción.
         run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./react-practice
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          # Si tu build está en una carpeta diferente a la que Vercel detecta automáticamente (usualmente 'dist' para Vite),
-          # podrías necesitar especificarla aquí o en vercel.json.
-          # Por ejemplo, si Vite construye en 'build_output':
-          # VERCEL_PROJECT_SETTINGS_BUILDS_FROMS: 'build_output'
-          # Sin embargo, Vercel es bueno detectando 'dist' automáticamente.
